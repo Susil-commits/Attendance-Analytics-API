@@ -795,7 +795,7 @@ def build_department_trend_pipeline(
                 "attendance_rate": {
                     "$cond": [
                         {"$and": ["$is_working_day", {"$gt": ["$headcount", 0]}]},
-                        {"$round": [{"$divide": ["$present_count", "$headcount"]}, 4]},
+                        {"$divide": ["$present_count", "$headcount"]},
                         None,
                     ]
                 }

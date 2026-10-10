@@ -40,7 +40,7 @@ uvicorn app.main:app --port 8000
 - **Employee Monthly (`/analytics/employees/{emp_code}/monthly`):** Aggregates presence on weekdays only, accounting for half-days (0.5 weight). For employees who joined mid-month, working days are computed from `joined_on`.
 - **Department Summary (`/analytics/departments/summary`):** Queries from `employees` joined by month-end so employees with zero attendance records are included in headcount. Uses a `$lookup` sub-pipeline to aggregate individual record work hours.
 - **Late Leaderboard (`/analytics/leaderboard/late`):** Uses `$setWindowFields` with `$rank` for standard competition ranking (1, 2, 2, 4). The `limit` filter is applied after ranking, so all employees tied at the cutoff rank are returned.
-- **Department Trend (`/analytics/departments/{department}/trend`):** Uses `$densify` with date boundaries to ensure every calendar day is present. Per the specification ("non-null attendance_rate values"), the 7-day moving average is computed over the rounded 4-decimal attendance rates.
+- **Department Trend (`/analytics/departments/{department}/trend`):** Uses `$densify` with date boundaries to ensure every calendar day is present. The 7-day moving average is computed over unrounded attendance rates in MongoDB's `$setWindowFields` stage to preserve floating-point precision across the window; both `attendance_rate` and `moving_avg_7d` are rounded to 4 decimals using half-up arithmetic upon serialization.
 
 ### Index Coverage & Explain
 Indexes are created automatically at startup inside FastAPI's `lifespan` handler. `GET /admin/explain/{endpoint}` exposes MongoDB `explain` plans with `executionStats` for performance verification.
