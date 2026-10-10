@@ -49,5 +49,23 @@ Indexes are created automatically at startup inside FastAPI's `lifespan` handler
 
 ## 3. Verification & Testing
 
-- Pure business rule calculations (grace periods, half-up rounding, overtime thresholds, overnight shift attribution) and request validation (strict integers for timestamps, date formats, enum validation) were verified with isolated unit tests.
-- Database-backed operations (concurrency guarantees, aggregation pipelines, and explain plans) run against MongoDB 6.0+ with the indexes configured at startup.
+### Rule & Concurrency Verification
+- **Business Rules:** Pure calculations (10-minute grace period boundary at 600s, Decimal round-half-up, 30-minute overtime threshold, overnight shift date attribution) verified with isolated unit tests.
+- **Punch Concurrency:** 20 parallel punch-ins yield strictly `1 × 201` and `19 × 409`; 20 parallel punch-outs yield strictly `1 × 200` and `19 × 409`.
+- **Optimistic Locking:** 10 parallel PATCH regularization requests result in audit history length strictly equal to the number of successful 200 responses.
+
+### Analytics Mathematical Verification
+- **Mid-Month Joiner & Zero-Log Employees:** Verified `working_days` calculation from `joined_on` (e.g. joining July 20 yields 10 working days; zero-log employees yield 23 working days and 0.0 attendance percentage without errors).
+- **Weekend Records:** Verified that weekend punches are excluded from `present_days` and `working_days`, while their `late_minutes`, `overtime_minutes`, and `work_hours` are included in monthly totals.
+- **Department Headcount:** Verified that department summary includes enrolled employees who have zero attendance records in the month.
+- **Leaderboard Ties at Cutoff:** Verified standard competition ranking (1, 2, 2, 4) with ties at cutoff rank (e.g. totals 100, 80, 80, 50 with limit=2 returns 3 records with ranks 1, 2, 2).
+- **Zero-Record Trend Gap Filling:** Verified that department trend across an interval with zero records returns every single calendar day using `$unionWith` + `$documents` + `$densify`.
+
+### 120,000-Document Explain Plan Verification
+Tested against live MongoDB with 120,000 unique `(emp_code, date)` documents and 2,000 employees. Every endpoint and query filter variant was scanned across the full explain JSON tree:
+- `attendance_list` (date range, status + date, emp_code + date): **IXSCAN: YES | COLLSCAN: NO**
+- `employee_monthly`: **IXSCAN: YES | COLLSCAN: NO**
+- `department_summary` (with and without department filter): **IXSCAN: YES | COLLSCAN: NO**
+- `late_leaderboard` (with and without department filter): **IXSCAN: YES | COLLSCAN: NO**
+- `department_trend`: **IXSCAN: YES | COLLSCAN: NO**
+
