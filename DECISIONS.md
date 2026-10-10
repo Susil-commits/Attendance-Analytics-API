@@ -1,16 +1,16 @@
 # DECISIONS.md
 
 1. **Indexes.**
-   I created compound indexes on `employees` (`emp_code` unique; `(department, emp_code)`) and `attendance_logs` (`(emp_code, date)` unique; `(date, emp_code)`; `(status, date, emp_code)`; `(emp_code, punch_in)`). I avoided indexing `status` alone because 5 low-cardinality values offer poor selectivity and add write overhead.
+I added unique indexes on `emp_code` and `(emp_code, date)` to stop duplicate records. For queries, I indexed `(date, emp_code)` and `(status, date, emp_code)`. I skipped indexing `status` alone because five values give low selectivity and slow down writes.
 
 2. **Punch-in race.**
-   Instead of checking before inserting, both concurrent requests run `insert_one`. MongoDB's unique index on `(emp_code, date)` serializes them: one insert succeeds (201), while the other hits a `DuplicateKeyError`, caught and returned as HTTP 409.
+Both requests call `insert_one` directly without pre-checking. MongoDB's unique index on `(emp_code, date)` serializes them: the first insert succeeds with 201, and the second triggers a `DuplicateKeyError`, which we catch and return as 409.
 
 3. **Ties at the cutoff.**
-   The late leaderboard uses `$setWindowFields` with `$rank` for competition ranking (1, 2, 2, 4) and filters `rank <= limit` *after* ranking, ordered by `emp_code`. Tied employees at the cutoff are all returned, so results can exceed `limit`.
+We rank by `total_late_minutes` using `$rank`, so tied employees share the same rank. We filter `rank <= limit` afterward. If multiple people tie at the cutoff, all are returned, so results can exceed `limit`. We sort by `emp_code` only for deterministic order.
 
 4. **Headcount.**
-   The department summary drives from `employees` joined by month-end. An embedded `$lookup` sub-pipeline summarizes each employee's logs into at most one document, followed by `$group` with `headcount = $sum 1`. Employees with zero logs are counted without duplicating rows.
+Department summary starts from `employees` filtered by `joined_on`, not attendance logs, so employees with zero logs are still counted. A `$lookup` summarizes logs per person before grouping by department, preventing row multiplication.
 
 5. **Scaling to 100x.**
-   At 10M records, I would pre-aggregate daily department stats via Change Streams, switch pagination to keyset cursors on `(date, emp_code)`, shard logs by `emp_code`, and stop inlining employee `joined_on` arrays in trend queries.
+At 10M rows, I'd maintain daily department rollups using Change Streams instead of scanning raw logs. For lists, I'd replace offset skip with cursor pagination on `(date, emp_code)`, and shard logs by `emp_code`.
