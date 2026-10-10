@@ -6,7 +6,5 @@ tests_local/
 .mongodb7/
 data/
 *.log
-SDT_candidate_kit/
-HROne_agent_plan.md
 sample_data/
 sample_seed.py

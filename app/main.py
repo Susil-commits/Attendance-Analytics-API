@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import json
 import logging
-import math
 import os
 import random
 import re
@@ -29,8 +28,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import bson.json_util
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query, Path, Request, Response, status
-from fastapi.exceptions import RequestValidationError
+from fastapi import FastAPI, HTTPException, Query, Path, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pymongo import MongoClient, ReturnDocument
