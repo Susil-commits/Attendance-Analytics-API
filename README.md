@@ -24,11 +24,11 @@ uvicorn app.main:app --port 8000
 ## Assumptions
 - **Punch-Out Error Order**: Punch-out validation checks evaluate in the order 404 (employee not found, or no punch-in at or before punched_at), 409 (record already punched out), and 422 (invalid timestamp, or punch-out not after punch-in / more than 24 h later).
 - **Moving Average Precision**: The 7-day moving average in department trend queries computes over unrounded daily attendance rates in MongoDB's `$setWindowFields` stage to preserve precision, rounding both daily rates and moving averages to 4 decimal places using half-up arithmetic upon serialization.
-- **Weekend Attendance Impact**: Attendance records logged on weekends (Saturday/Sunday) count toward `late_minutes` and `overtime_minutes` only, but are excluded from `present_days` and `working_days`.
+- **Weekend Attendance Impact**: Attendance records logged on weekends (Saturday/Sunday) count toward `late_minutes` and `overtime_minutes` only, but are excluded from `present_days`.
 - **Ties at Leaderboard Cutoff**: When multiple employees tie at the cutoff rank, all tied employees are returned, allowing results to exceed `limit`.
 
 ## What is Missing
-Nothing missing. All required endpoints, business rules (R1–R10), concurrency controls, and aggregation pipelines are fully implemented and compliant with the OpenAPI specification.
+No known gaps: all endpoints and rules R1–R10 are implemented. Behaviour I had to interpret is listed under Assumptions.
 
 ## Verification
 All business rules, concurrency guarantees, and 120k-record explain plans were verified using a comprehensive local test suite (tests are local and not included in the repo).
