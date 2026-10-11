@@ -22,9 +22,9 @@ uvicorn app.main:app --port 8000
 - `MONGO_DB`: Target MongoDB database name (default: `attendance_db`).
 
 ## Assumptions
-- **Punch-Out Error Order**: Punch-out validation checks evaluate in the order 404 (employee not found), 409 (no open punch-in or already punched out), and 422 (invalid timestamp format or punch-out time occurring before punch-in).
+- **Punch-Out Error Order**: Punch-out validation checks evaluate in the order 404 (employee not found, or no punch-in at or before punched_at), 409 (record already punched out), and 422 (invalid timestamp, or punch-out not after punch-in / more than 24 h later).
 - **Moving Average Precision**: The 7-day moving average in department trend queries computes over unrounded daily attendance rates in MongoDB's `$setWindowFields` stage to preserve precision, rounding both daily rates and moving averages to 4 decimal places using half-up arithmetic upon serialization.
-- **Weekend Attendance Impact**: Attendance records logged on weekends (Saturday/Sunday) count toward monthly `late_minutes`, `overtime_minutes`, and total `work_hours`, but are excluded from `present_days` and `working_days`.
+- **Weekend Attendance Impact**: Attendance records logged on weekends (Saturday/Sunday) count toward `late_minutes` and `overtime_minutes` only, but are excluded from `present_days` and `working_days`.
 - **Ties at Leaderboard Cutoff**: When multiple employees tie at the cutoff rank, all tied employees are returned, allowing results to exceed `limit`.
 
 ## What is Missing
